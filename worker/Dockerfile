@@ -2,7 +2,8 @@
 #FROM bde2020/spark-worker:2.2.0-hadoop2.8-hive-java8
 #FROM jfloff/alpine-python:3.6
 #FROM alpine:3.11
-FROM python:3.6-alpine3.10
+#FROM python:3.6-alpine3.10
+FROM bde2020/hadoop-base:2.0.0-hadoop3.2.1-java8
 
 ########### Create base spark image
 
@@ -19,8 +20,16 @@ COPY finish-step.sh /
 
 #COPY bde-spark.css /css/org/apache/spark/ui/static/timeline-view.css
 
-RUN apk update && apk add --no-cache curl bash openjdk8-jre python3 py-pip nss libc6-compat \
-      && ln -s /lib64/ld-linux-x86-64.so.2 /lib/ld-linux-x86-64.so.2 \
+RUN echo deb http://ftp.de.debian.org/debian testing main >> /etc/apt/sources.list 
+#    echo 'APT::Default-Release "stable";' |  tee -a /etc/apt/apt.conf.d/00local && \
+     
+RUN apt-get update && apt-get -y -t testing install python3.6 python3-pip
+
+#python3 python3-pip
+
+#RUN apt update && apt install -y curl bash openjdk8-jre   \
+RUN apt update && apt -t testing install -y curl bash   python3-pip  wget
+RUN ln -s /lib64/ld-linux-x86-64.so.2 /lib/ld-linux-x86-64.so.2 \
       && chmod +x *.sh \
       && wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz \
       && tar -xvzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz \
@@ -49,12 +58,13 @@ EXPOSE 8081
 
 ##############################  Install pyspark
 
+RUN apt install -y  pkg-config libpng-dev libfreetype6-dev   && ln -s /usr/bin/python3 /usr/bin/python
 
-#RUN apk add  pkg-config libpng12-dev libfreetype6-dev  && ln -s /usr/bin/python3 /usr/bin/python
-RUN apk add  gcc musl-dev g++ make alpine-sdk
+RUN  python3 -m pip install -U --force-reinstall pip
 RUN pip3 install kiwisolver &&  pip3 install numpy
-RUN apk add zlib-dev libjpeg jpeg-dev  && python3 -m pip install -U --force-reinstall pip
 RUN pip3 install  matplotlib   
 RUN pip3 install scapy pyspark hdfs3
+
+RUN chmod +x /worker.sh
 
 CMD ["/bin/bash", "/worker.sh"]
